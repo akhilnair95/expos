@@ -1,0 +1,3 @@
+print "in Module 6";
+print R0;
+return;

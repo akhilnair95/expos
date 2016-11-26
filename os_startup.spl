@@ -1,0 +1,68 @@
+//init
+loadi(65,7);
+loadi(66,8);
+
+//second process load
+loadi(78,69);
+
+//timer load
+loadi(4,17);
+loadi(5,18);
+
+//load int 10
+loadi(22,35);
+loadi(23,36);
+
+//load int 5
+loadi(12,25);
+loadi(13,26);
+
+//load module 5
+loadi(50,63);
+
+//load module 6
+loadi(52,65);
+
+PTBR = 28928;
+PTLR = 10;
+
+//Page table for init
+
+[PTBR+0] = 65;
+[PTBR+1] = "0100";
+[PTBR+2] = 66;
+[PTBR+3] = "0100";
+[PTBR+16] = 76;
+[PTBR+17] = "0110";
+
+// Setting PCB init
+[PROCESS_TABLE + 1] = 0;
+[PROCESS_TABLE + 4] = RUNNING;
+[PROCESS_TABLE + 11] = 77;
+[PROCESS_TABLE + 12] = 0;
+
+//Setting S/m status table
+
+[SYSTEM_STATUS_TABLE + 1] = 0;
+
+// Page table for P2
+[PTBR + 20] = 78;
+[PTBR + 21] = "0100";
+[PTBR + 36] = 79;
+[PTBR + 37] = "0110";
+
+// Setting PCB P2
+[PROCESS_TABLE + 17] = 1;
+[PROCESS_TABLE + 20] = CREATED;
+[PROCESS_TABLE + 27] = 80;
+[PROCESS_TABLE + 28] = 0;
+[PROCESS_TABLE + 29] = 8 * 512;
+[PROCESS_TABLE + 30] = PTBR + 20;
+[PROCESS_TABLE + 31] = 10;
+
+SP = 8*512; 
+
+[79*512] = 0;
+[76*512] = 0; 
+
+ireturn;
