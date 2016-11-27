@@ -1,0 +1,54 @@
+// Saving user context in kernel stack
+
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+//Backup of user registers
+backup;
+
+breakpoint;
+
+alias new_page R0;
+alias ip R1;
+alias user_sp R2;
+
+//Retreiving user_sp from process table
+user_sp = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
+alias physical_sp R3;
+
+//Finding the physical address of user_sp
+physical_sp = [PTBR + (user_sp / 512)*2] * 512 + (user_sp % 512);
+
+//Setting IP to the value present on top of user stack
+ip = [physical_sp];
+
+inline "PUSH R1";
+inline "PUSH R2";
+inline "PUSH R3";
+
+//Calling module to get free memory page
+call MOD_2;
+
+inline "POP R3";
+inline "POP R2";
+inline "POP R1";
+
+//Loadig page from disk
+loadi(new_page, [PTBR + (ip/512)*2]);
+
+//Setting PT entries for the new page
+[PTBR + (ip/512)*2] = new_page;
+[PTBR + (ip/512)*2 + 1] = "0100";
+
+//Restoring user registers
+restore;
+
+//Setting the value of Sp to user_sp retreived from process table
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
+
+ireturn;

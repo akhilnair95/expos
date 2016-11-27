@@ -3,7 +3,7 @@ loadi(65,7);
 loadi(66,8);
 
 //second process load
-loadi(78,69);
+//loadi(78,72);
 
 //timer load
 loadi(4,17);
@@ -13,9 +13,16 @@ loadi(5,18);
 loadi(22,35);
 loadi(23,36);
 
+//load exception
+loadi(2, 15);
+loadi(3, 16);
+
 //load int 5
 loadi(12,25);
 loadi(13,26);
+
+//load module 2
+loadi(44,57);
 
 //load module 5
 loadi(50,63);
@@ -46,8 +53,10 @@ PTLR = 10;
 [SYSTEM_STATUS_TABLE + 1] = 0;
 
 // Page table for P2
-[PTBR + 20] = 78;
-[PTBR + 21] = "0100";
+[PTBR + 20] = 69;
+[PTBR + 21] = "0000";
+[PTBR + 22] = 70;
+[PTBR + 23] = "0000";
 [PTBR + 36] = 79;
 [PTBR + 37] = "0110";
 
@@ -64,5 +73,23 @@ SP = 8*512;
 
 [79*512] = 0;
 [76*512] = 0; 
+
+//Setting up memory free list
+alias counter R0;
+counter = 0;
+while(counter < 128) do
+	if(counter <= 75) then
+		[MEMORY_FREE_LIST + counter] = 1;
+	else
+		[MEMORY_FREE_LIST + counter] = 0;
+	endif;
+	counter = counter + 1;
+endwhile;
+
+//Setting memory free list entries for stack pages
+[MEMORY_FREE_LIST + 76] = 1;
+[MEMORY_FREE_LIST + 77] = 1;
+[MEMORY_FREE_LIST + 79] = 1;
+[MEMORY_FREE_LIST + 80] = 1;
 
 ireturn;

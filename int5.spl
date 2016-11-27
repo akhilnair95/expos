@@ -1,5 +1,4 @@
 SP = 76 * 512;
-breakpoint;
 print R0;
 SP = 8 * 512;
 ireturn;
