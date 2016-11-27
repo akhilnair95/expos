@@ -11,6 +11,8 @@ while(counter < 128) do
 	counter = counter + 1;
 endwhile;
 
+[MEMORY_FREE_LIST + counter] = 1;
+
 //Setting result
 R0 = counter;
 

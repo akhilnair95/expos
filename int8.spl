@@ -1,0 +1,185 @@
+alias userSP R0;
+userSP = SP;
+
+alias physicalSP R1;
+physicalSP = [PTBR + (userSP/512)*2]*512 + (userSP%512);
+
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias counter R2;
+alias newPID R3;
+
+//-------------------------------------------------------------------
+
+// Finding free pcb
+counter = 0;
+
+while(counter < 16) do
+	if([PROCESS_TABLE + counter * 16 + 4] == TERMINATED) then
+		break;
+	endif;	
+	counter = counter + 1;
+endwhile;
+
+// Check for no free PCBS
+
+if(counter == 16) then
+	[physicalSP - 1] = -1;
+	print "PCB full";
+	SP = userSP;
+	ireturn;
+endif;
+
+newPID = counter;
+
+//-------------------------------------------------------------------
+
+alias kernPage R4;
+alias stackP1 R5;
+alias stackP2 R6;
+
+// Get 3 mem pages 2 for stack & 1 for Uarea
+
+// Pg 1
+
+inline "PUSH R0";
+inline "PUSH R1";
+inline "PUSH R2";
+inline "PUSH R3";
+
+call MOD_2;
+
+kernPage = R0;
+
+inline "POP R3";
+inline "POP R2";
+inline "POP R1";
+inline "POP R0";
+
+//Page 2
+
+inline "PUSH R0";
+inline "PUSH R1";
+inline "PUSH R2";
+inline "PUSH R3";
+inline "PUSH R4";
+
+call MOD_2;
+
+stackP1 = R0;
+
+inline "POP R4";
+inline "POP R3";
+inline "POP R2";
+inline "POP R1";
+inline "POP R0";
+
+
+//Page 3
+
+inline "PUSH R0";
+inline "PUSH R1";
+inline "PUSH R2";
+inline "PUSH R3";
+inline "PUSH R4";
+inline "PUSH R5";
+
+call MOD_2;
+
+stackP2 = R0;
+
+inline "POP R5";
+inline "POP R4";
+inline "POP R3";
+inline "POP R2";
+inline "POP R1";
+inline "POP R0";
+
+//-------------------------------------------------------------------
+// Setting Stack pages
+
+alias currentPID R7;
+
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+//Set the value of Kernel stack in Process table
+[PROCESS_TABLE + newPID * 16 + 11] = kernPage;
+
+//Set value of User stack in Page table
+[28928 + newPID * 20 + 16] = stackP1;
+[28928 + newPID * 20 + 17] = "0110";
+[28928 + newPID * 20 + 18] = stackP2;
+[28928 + newPID * 20 + 19] = "0110";
+
+
+//-------------------------------------------------------------------
+// Copying page table and incremt mem fl for shared pages
+
+counter = 0;
+
+while (counter < 16) do
+	[28928 + newPID * 20 + counter] = [PTBR + counter];
+	
+	if([PTBR + counter] != -1) then
+	  [MEMORY_FREE_LIST + [PTBR + counter]] = [MEMORY_FREE_LIST + [PTBR + counter]] + 1;
+	endif;
+	
+	counter = counter + 1;
+	[28928 + newPID * 20 + counter] = [PTBR + counter];
+	counter = counter + 1;
+endwhile;
+
+//-------------------------------------------------------------------
+// setting PCB of new Process
+
+[PROCESS_TABLE + newPID * 16 + 1] = newPID;
+[PROCESS_TABLE + newPID * 16 + 2] = currentPID;
+[PROCESS_TABLE + newPID * 16 + 7] = [PROCESS_TABLE + currentPID * 16 + 7];
+[PROCESS_TABLE + newPID * 16 + 11] = kernPage;
+[PROCESS_TABLE + newPID * 16 + 12] = 0;
+[PROCESS_TABLE + newPID * 16 + 13] = [PROCESS_TABLE + currentPID * 16 + 13];
+[PROCESS_TABLE + newPID * 16 + 14] = 28928 + newPID * 20;
+[PROCESS_TABLE + newPID * 16 + 15] = [PROCESS_TABLE + currentPID * 16 + 15];
+
+//-------------------------------------------------------------------
+//Copy Stacks from parent to child
+
+counter = 0;
+
+while(counter < 512) do
+	
+	[stackP1 * 512 + counter] = [[PTBR + 16]*512 + counter];
+	
+	// Suppose only 1 stack
+	if([PTBR + 18] != -1) then
+	  [stackP2 * 512 + counter] = [[PTBR + 18]*512 + counter];
+	endif;
+	
+	[kernPage * 512 + counter] = [[PROCESS_TABLE + currentPID * 16 + 11] * 512 + counter];
+	
+	counter = counter + 1;
+endwhile;
+
+//-------------------------------------------------------------------
+// Set state of child to Created
+
+[PROCESS_TABLE + newPID * 16 + 4] = CREATED;
+
+//-------------------------------------------------------------------
+//Set retval for parent and child in stacks
+
+[physicalSP - 1] = newPID;
+
+userSP = userSP -1;
+
+[[28928 + (newPID * 20) + (userSP / 512) * 2] * 512 + (userSP % 512)] = 0;
+
+//-------------------------------------------------------------------
+// setting back user SP
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
+ireturn;

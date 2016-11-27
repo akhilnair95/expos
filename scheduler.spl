@@ -1,35 +1,43 @@
 alias process_table_entry R0;
-alias currentPid R1;
+alias currentPID R1;
 
 // Getting the current pid from s/m stat table
-currentPid = [SYSTEM_STATUS_TABLE + 1];
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
 
 //Saving the Kernel SP, PTBR , PTLR to PCB
-process_table_entry = PROCESS_TABLE + currentPid * 16;
+process_table_entry = PROCESS_TABLE + currentPID * 16;
 
 [process_table_entry + 12] = SP % 512;
 [process_table_entry + 14] = PTBR;
 [process_table_entry + 15] = PTLR;
 
-alias newPid R2;
+
+alias newPID R2;
 
 //find out the next ready or created process
 
-if(currentPid == 0) then
-	newPid = 1;
-else
-	newPid = 0;
-endif;
+newPID = currentPID + 1;
 
 alias new_process_table R0;
-new_process_table = PROCESS_TABLE + newPid * 16;
+
+while(newPID != currentPID) do
+	new_process_table = PROCESS_TABLE + newPID * 16;
+	if([new_process_table + 4] == READY || [new_process_table + 4] == CREATED) then
+		break;
+	endif;
+	newPID = (newPID + 1) % 16;
+endwhile;
+
+new_process_table = PROCESS_TABLE + newPID * 16;
+
 
 //Set back Kernel SP, PTBR , PTLR
 SP =  [new_process_table + 11] * 512 + [new_process_table + 12] ;
 PTBR = [new_process_table + 14];
 PTLR = [new_process_table + 15];
 
-[SYSTEM_STATUS_TABLE + 1] = newPid;
+[SYSTEM_STATUS_TABLE + 1] = newPID;
 
 if([new_process_table + 4] == CREATED) then
 	// Overwrite UserSP

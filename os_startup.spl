@@ -30,6 +30,31 @@ loadi(50,63);
 //load module 6
 loadi(52,65);
 
+//load int 8
+loadi(18,31);
+loadi(19,32);
+
+alias counter R0;
+
+// Initialising PCBs
+
+counter = 0;
+
+while(counter < 16) do
+	[PROCESS_TABLE + counter * 16 + 4] = TERMINATED;
+	[PROCESS_TABLE + counter * 16 + 1] = counter;
+	counter = counter + 1;
+endwhile;
+
+// Initialising Page Table
+
+counter = 0;
+
+while(counter < 160) do
+	[28928 + counter * 2] = -1;
+	counter = counter + 1;
+endwhile;
+
 PTBR = 28928;
 PTLR = 10;
 
@@ -41,41 +66,28 @@ PTLR = 10;
 [PTBR+3] = "0100";
 [PTBR+16] = 76;
 [PTBR+17] = "0110";
+[PTBR+18] = 77;
+[PTBR+19] = "0110";
 
 // Setting PCB init
+[PROCESS_TABLE + 0] = 0;
 [PROCESS_TABLE + 1] = 0;
 [PROCESS_TABLE + 4] = RUNNING;
-[PROCESS_TABLE + 11] = 77;
+[PROCESS_TABLE + 11] = 78;
 [PROCESS_TABLE + 12] = 0;
+[PROCESS_TABLE + 14] = PTBR;
+[PROCESS_TABLE + 15] = PTLR;
 
 //Setting S/m status table
 
 [SYSTEM_STATUS_TABLE + 1] = 0;
 
-// Page table for P2
-[PTBR + 20] = 69;
-[PTBR + 21] = "0000";
-[PTBR + 22] = 70;
-[PTBR + 23] = "0000";
-[PTBR + 36] = 79;
-[PTBR + 37] = "0110";
-
-// Setting PCB P2
-[PROCESS_TABLE + 17] = 1;
-[PROCESS_TABLE + 20] = CREATED;
-[PROCESS_TABLE + 27] = 80;
-[PROCESS_TABLE + 28] = 0;
-[PROCESS_TABLE + 29] = 8 * 512;
-[PROCESS_TABLE + 30] = PTBR + 20;
-[PROCESS_TABLE + 31] = 10;
-
 SP = 8*512; 
 
-[79*512] = 0;
 [76*512] = 0; 
 
 //Setting up memory free list
-alias counter R0;
+
 counter = 0;
 while(counter < 128) do
 	if(counter <= 75) then
@@ -89,7 +101,6 @@ endwhile;
 //Setting memory free list entries for stack pages
 [MEMORY_FREE_LIST + 76] = 1;
 [MEMORY_FREE_LIST + 77] = 1;
-[MEMORY_FREE_LIST + 79] = 1;
-[MEMORY_FREE_LIST + 80] = 1;
+[MEMORY_FREE_LIST + 78] = 1;
 
 ireturn;
