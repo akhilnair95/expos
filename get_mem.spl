@@ -26,10 +26,6 @@ if (argument ==1) then
 else
 	alias page R2;
 	
-	print "Freeing";
-	print page;
-	print " ";
-	
 	[MEMORY_FREE_LIST + page] = [MEMORY_FREE_LIST + page] - 1;
 	
 	if([MEMORY_FREE_LIST + page] == 0) then
@@ -40,7 +36,6 @@ else
 		endwhile;
 	endif;
 	
-	breakpoint;
 endif;
 
 return;
