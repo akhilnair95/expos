@@ -1,2 +1,27 @@
-print "halting";
+//Saving value of user SP in PCB
+
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+// Set arguments for exit module
+alias arg R1;
+arg = 3;
+
+alias curr_pid R2;
+curr_pid = [SYSTEM_STATUS_TABLE + 1];
+
+//exit module
+call MOD_1;
+
+breakpoint;
+
+//call scheduler
+call MOD_5;
+
+// never returns from this point
+
+print "Exit Return error";
+
 halt;

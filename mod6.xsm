@@ -1,8 +1,0 @@
-MOV R16,  "in Module 6"
-PORT P1, R16
-OUT
-MOV R16, R0
-PORT P1, R16
-OUT
-RET
-HALT

@@ -2,7 +2,8 @@ alias userSP R0;
 userSP = SP;
 
 alias physicalSP R1;
-physicalSP = [PTBR + (userSP/512)*2]*512 + (userSP%512);
+
+physicalSP = [PTBR +  ( userSP / 512 ) * 2] * 512 + (userSP % 512);
 
 //Saving value of user SP in PCB
 [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
@@ -51,6 +52,7 @@ inline "PUSH R1";
 inline "PUSH R2";
 inline "PUSH R3";
 
+R1 = 1;
 call MOD_2;
 
 kernPage = R0;
@@ -68,6 +70,7 @@ inline "PUSH R2";
 inline "PUSH R3";
 inline "PUSH R4";
 
+R1 = 1;
 call MOD_2;
 
 stackP1 = R0;
@@ -88,6 +91,7 @@ inline "PUSH R3";
 inline "PUSH R4";
 inline "PUSH R5";
 
+R1 = 1;
 call MOD_2;
 
 stackP2 = R0;
@@ -125,7 +129,7 @@ while (counter < 16) do
 	[28928 + newPID * 20 + counter] = [PTBR + counter];
 	
 	if([PTBR + counter] != -1) then
-	  [MEMORY_FREE_LIST + [PTBR + counter]] = [MEMORY_FREE_LIST + [PTBR + counter]] + 1;
+	  [MEMORY_FREE_LIST + [PTBR + counter]] = [MEMORY_FREE_LIST + [PTBR + counter]] + 1;	
 	endif;
 	
 	counter = counter + 1;
@@ -150,6 +154,7 @@ endwhile;
 
 counter = 0;
 
+
 while(counter < 512) do
 	
 	[stackP1 * 512 + counter] = [[PTBR + 16]*512 + counter];
@@ -164,6 +169,7 @@ while(counter < 512) do
 	counter = counter + 1;
 endwhile;
 
+
 //-------------------------------------------------------------------
 // Set state of child to Created
 
@@ -172,13 +178,18 @@ endwhile;
 //-------------------------------------------------------------------
 //Set retval for parent and child in stacks
 
+alias child_SP_page R8;
 [physicalSP - 1] = newPID;
 
 userSP = userSP -1;
 
-[[28928 + (newPID * 20) + (userSP / 512) * 2] * 512 + (userSP % 512)] = 0;
+child_SP_page = [28928 + (newPID * 20) + (userSP / 512) * 2];
+
+[child_SP_page * 512 + (userSP % 512)] = 0;
 
 //-------------------------------------------------------------------
+
+
 // setting back user SP
 SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 

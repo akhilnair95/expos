@@ -21,6 +21,10 @@ loadi(3, 16);
 loadi(12,25);
 loadi(13,26);
 
+//load module 1
+loadi(42,55);
+loadi(43,56);
+
 //load module 2
 loadi(44,57);
 
@@ -52,8 +56,10 @@ counter = 0;
 
 while(counter < 160) do
 	[28928 + counter * 2] = -1;
+	[28928 + counter * 2 + 1] = "0000";
 	counter = counter + 1;
 endwhile;
+
 
 PTBR = 28928;
 PTLR = 10;

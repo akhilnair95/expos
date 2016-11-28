@@ -1,19 +1,46 @@
+alias argument R1;
 alias counter R4;
 
-//Initialising counter to beginning of free pages in memory 
-counter = 76;
+if (argument ==1) then
+	//Initialising counter to beginning of free pages in memory 
+	counter = 0;
 
-//Searching for a free page
-while(counter < 128) do
-	if([MEMORY_FREE_LIST + counter] == 0) then
-		break;
+	//Searching for a free page
+	while(counter < 128) do
+		if([MEMORY_FREE_LIST + counter] == 0) then
+			break;
+		endif;
+		counter = counter + 1;
+	endwhile;
+
+	[MEMORY_FREE_LIST + counter] = 1;
+
+	if(counter < 76) then
+		print "Error in get mem";
+		halt;
 	endif;
-	counter = counter + 1;
-endwhile;
-
-[MEMORY_FREE_LIST + counter] = 1;
-
-//Setting result
-R0 = counter;
+	
+	//Setting result
+	R0 = counter;
+	
+else
+	alias page R2;
+	
+	print "Freeing";
+	print page;
+	print " ";
+	
+	[MEMORY_FREE_LIST + page] = [MEMORY_FREE_LIST + page] - 1;
+	
+	if([MEMORY_FREE_LIST + page] == 0) then
+		counter = 0;
+		while(counter < 512) do
+			[page * 512 + counter] = "";
+			counter = counter + 1;
+		endwhile;
+	endif;
+	
+	breakpoint;
+endif;
 
 return;

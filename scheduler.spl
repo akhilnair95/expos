@@ -4,7 +4,6 @@ alias currentPID R1;
 // Getting the current pid from s/m stat table
 currentPID = [SYSTEM_STATUS_TABLE + 1];
 
-
 //Saving the Kernel SP, PTBR , PTLR to PCB
 process_table_entry = PROCESS_TABLE + currentPID * 16;
 
@@ -21,6 +20,7 @@ newPID = currentPID + 1;
 
 alias new_process_table R0;
 
+
 while(newPID != currentPID) do
 	new_process_table = PROCESS_TABLE + newPID * 16;
 	if([new_process_table + 4] == READY || [new_process_table + 4] == CREATED) then
@@ -30,6 +30,13 @@ while(newPID != currentPID) do
 endwhile;
 
 new_process_table = PROCESS_TABLE + newPID * 16;
+
+
+// No more Processes to schedule -> halt
+if([new_process_table + 4] == TERMINATED) then
+	print "Halt";
+	halt;
+endif;
 
 
 //Set back Kernel SP, PTBR , PTLR

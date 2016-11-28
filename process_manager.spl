@@ -1,0 +1,90 @@
+alias argument R1;
+alias pid R2;
+
+if (argument == 1) then
+	//Get new pcb entry
+	R4 = 9;
+else 
+	if(argument == 2) then
+
+		//Release pcb entry
+		
+		//Release uarea page
+		
+		alias kernel_stack R4;
+		kernel_stack = [PROCESS_TABLE + pid*16 + 11];
+		
+		//Freeing Kernel stack in MemFL
+		// Note -> dnt call free_mem 
+		// irikkuna komb murikalle :p
+		
+		[MEMORY_FREE_LIST + kernel_stack] = [MEMORY_FREE_LIST + kernel_stack] - 1;
+		
+		//Set state to terminated
+		[PROCESS_TABLE + pid*16 + 4] = TERMINATED;
+		
+	else
+		if(argument == 3) then
+			//exit process
+			
+			//Free pcb entry
+
+			inline "PUSH R1";
+			inline "PUSH R2";
+			
+			R1 = 2;
+			R2 = pid;
+			
+			call MOD_1;
+
+			inline "POP R2";
+			inline "POP R1";
+			
+			//Free page table
+			inline "PUSH R1";
+			inline "PUSH R2";
+			
+			R1 = 4;
+			
+			call MOD_1;
+			
+			inline "POP R2";
+			inline "POP R1";
+			
+			
+		else
+		
+			//Free page table entries
+			alias counter R4;
+			counter = 0;
+			
+			while(counter < 20) do
+				//Check if page in Page table is valid
+
+				if([28928 + pid * 20 + counter] != -1) then
+					inline "PUSH R1";
+					inline "PUSH R2";
+					inline "PUSH R4";
+					
+					R1 = 2;
+					R2 = [28928 + pid * 20 + counter];
+					
+					call MOD_2;
+					
+					inline "POP R4";
+					inline "POP R2";
+					inline "POP	R1";
+				endif;	
+				
+					[28928 + pid * 20 + counter] = -1;
+					counter = counter + 1;
+					[28928 + pid * 20 + counter] = "0000";
+					counter = counter + 1;
+					
+			endwhile;
+		endif;
+	endif;	
+endif;				
+
+
+return;
