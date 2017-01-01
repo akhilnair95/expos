@@ -20,7 +20,6 @@ newPID = currentPID + 1;
 
 alias new_process_table R0;
 
-
 while(newPID != currentPID) do
 	new_process_table = PROCESS_TABLE + newPID * 16;
 	if([new_process_table + 4] == READY || [new_process_table + 4] == CREATED) then
@@ -30,7 +29,6 @@ while(newPID != currentPID) do
 endwhile;
 
 new_process_table = PROCESS_TABLE + newPID * 16;
-
 
 // No more Processes to schedule -> halt
 if([new_process_table + 4] == TERMINATED) then
@@ -44,7 +42,12 @@ SP =  [new_process_table + 11] * 512 + [new_process_table + 12] ;
 PTBR = [new_process_table + 14];
 PTLR = [new_process_table + 15];
 
+print "to schedule";
+print newPID;
+
 [SYSTEM_STATUS_TABLE + 1] = newPID;
+
+breakpoint;
 
 if([new_process_table + 4] == CREATED) then
 	// Overwrite UserSP
@@ -52,5 +55,7 @@ if([new_process_table + 4] == CREATED) then
 	[new_process_table + 4] = RUNNING;
 	ireturn;
 endif;
+
+[new_process_table + 4] = RUNNING;
 
 return;

@@ -1,0 +1,27 @@
+alias fnNumber R1;
+
+if(fnNumber == 2) then
+	// Acquire Disk
+	
+	alias pid R4;
+	
+	pid = [SYSTEM_STATUS_TABLE + 1];
+	
+	while([DISK_STATUS_TABLE] == 1) do
+		[PROCESS_TABLE + pid * 16 + 4] = WAIT_DISK;
+		call MOD_5; 
+	endwhile;
+	
+	[DISK_STATUS_TABLE] = 1;
+	
+	// load
+	load(R2,R3);
+	
+	print "Disk slp";	
+	breakpoint;
+	
+	[PROCESS_TABLE + pid * 16 + 4] = WAIT_DISK;
+	call MOD_5;
+	
+	return;
+endif;

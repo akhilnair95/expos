@@ -1,0 +1,32 @@
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+backup;
+
+print "Disk int";
+
+// Set disk as free
+[DISK_STATUS_TABLE] = 0;
+
+// wake up processes sleeping for disk - (2 types)
+alias counter R0;
+
+counter = 0;
+
+while(counter < 16) do
+	if([PROCESS_TABLE + counter * 16 + 4] == WAIT_DISK) then
+		[PROCESS_TABLE + counter * 16 + 4] = READY;
+	endif;
+	counter = counter + 1;
+endwhile;
+
+restore;
+
+// setting back user SP
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
+ireturn;
+

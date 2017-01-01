@@ -1,0 +1,257 @@
+//Exec System Call
+
+alias userSP R0;
+userSP = SP;
+
+alias physicalSP R1;
+
+physicalSP = [PTBR +  ( userSP / 512 ) * 2] * 512 + (userSP % 512);
+
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+//-------------------------------------------------------------------
+alias counter R2;
+alias fname R3;
+
+
+//Get Filename from physicalSP -4
+
+fname = [physicalSP - 4];
+
+if(fname == "") then
+	// setting back user SP
+	SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[physicalSP - 1] = -1;
+	ireturn;
+endif;
+
+//Get the inodeindex from inode table
+alias inodeEntry R4;
+
+counter = 0;
+
+while(counter < 60) do
+	inodeEntry = INODE_TABLE + counter * 16;
+	if([inodeEntry + 1] == fname) then
+		break;
+	endif;
+	counter = counter + 1;
+endwhile;	
+
+//FILE NOT FOUND check
+
+if(counter == 60) then
+	// setting back user SP
+	SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[physicalSP - 1] = -1;
+	ireturn;
+endif;
+
+//-------------------------------------------------------------------
+
+// Deallocate resources of the current process
+
+//Free pcb entry
+
+	inline "PUSH R0";
+	inline "PUSH R1";
+	inline "PUSH R2";
+	inline "PUSH R3";
+	inline "PUSH R4";
+	
+	R1 = 2;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+	
+	call MOD_1;
+
+// free Page Table
+	
+	R1 = 4;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+		
+	call MOD_1;
+	
+	inline "POP R4";
+	inline "POP R3";
+	inline "POP R2";
+	inline "POP R1";
+	inline "POP R0";
+
+//-------------------------------------------------------------------
+
+// Acquire 2 Stack 1 uarea 1 code
+
+alias kernPage R5;
+alias stackP1 R6;
+alias stackP2 R7;
+alias codePage R8;
+
+	// KernPage
+	
+	inline "PUSH R0";
+	inline "PUSH R1";
+	inline "PUSH R2";
+	inline "PUSH R3";
+	inline "PUSH R4";
+
+	R1 = 1;
+	call MOD_2;	
+
+	kernPage = R0;
+	
+	inline "POP R4";
+	inline "POP R3";
+	inline "POP R2";
+	inline "POP R1";
+	inline "POP R0";
+
+	//Stack 1
+	
+	inline "PUSH R0";
+	inline "PUSH R1";
+	inline "PUSH R2";
+	inline "PUSH R3";
+	inline "PUSH R4";
+	inline "PUSH R5";
+	
+	R1 = 1;
+	call MOD_2;	
+
+	stackP1 = R0;
+	
+	inline "POP R5";
+	inline "POP R4";
+	inline "POP R3";
+	inline "POP R2";
+	inline "POP R1";
+	inline "POP R0";
+	
+	//Stack 2
+	
+	inline "PUSH R0";
+	inline "PUSH R1";
+	inline "PUSH R2";
+	inline "PUSH R3";
+	inline "PUSH R4";
+	inline "PUSH R5";
+	inline "PUSH R6";
+	
+	R1 = 1;
+	call MOD_2;	
+
+	stackP2 = R0;
+	
+	inline "POP R6";
+	inline "POP R5";
+	inline "POP R4";
+	inline "POP R3";
+	inline "POP R2";
+	inline "POP R1";
+	inline "POP R0";
+	
+	//CodePage
+	
+	inline "PUSH R0";
+	inline "PUSH R1";
+	inline "PUSH R2";
+	inline "PUSH R3";
+	inline "PUSH R4";
+	inline "PUSH R5";
+	inline "PUSH R6";
+	inline "PUSH R7";
+	
+	R1 = 1;
+	call MOD_2;	
+
+	codePage = R0;
+	
+	inline "POP R7";
+	inline "POP R6";
+	inline "POP R5";
+	inline "POP R4";
+	inline "POP R3";
+	inline "POP R2";
+	inline "POP R1";
+	inline "POP R0";
+	
+//-------------------------------------------------------------------
+	// Load the first code page to code mem
+	
+	alias firstPage R9;
+	alias startIP R10;
+	
+	firstPage = [inodeEntry + 8];
+	
+	//HACK - use inline push (not necc as R0 not used)
+	backup;
+	
+	R1 = 2;
+	R2 = codePage;
+	R3 = firstPage;
+
+	call MOD_4;
+	restore;
+	
+	startIP = [codePage * 512 + 1];	
+
+//-------------------------------------------------------------------
+// Setting Page Table
+
+alias pid R11;
+alias pageTable R12;
+
+pid = [SYSTEM_STATUS_TABLE + 1];
+
+pageTable = PAGE_TABLE_BASE + pid*20;
+
+[pageTable + 0] = 63; 
+[pageTable + 1] = "0000";
+[pageTable + 2] = 64;
+[pageTable + 3] = "0000";
+
+[pageTable + 4] = -1;
+[pageTable + 5] = "0000";
+[pageTable + 6] = -1;
+[pageTable + 7] = "0000";
+
+[pageTable + 8] = codePage;
+[pageTable + 9] = "0100";
+[pageTable + 10] = [inodeEntry + 9];
+[pageTable + 11] = "0000";
+[pageTable + 12] = [inodeEntry + 10];
+[pageTable + 13] = "0000";
+[pageTable + 14] = [inodeEntry + 11];
+[pageTable + 15] = "0000";
+
+[pageTable + 16] = stackP1;
+[pageTable + 17] = "0110";
+[pageTable + 18] = stackP2;
+[pageTable + 19] = "0110";
+
+//-------------------------------------------------------------------
+// Setting PCB
+
+alias startPCB R13;
+
+startPCB = PROCESS_TABLE + pid * 16;
+
+[startPCB + 1] = pid;
+[startPCB + 2] = pid;
+[startPCB + 7] = inodeEntry;
+[startPCB + 11] = kernPage;
+[startPCB + 12] = 0;
+
+//-------------------------------------------------------------------
+//Set IP to top of Stack
+
+[stackP1 * 512] = startIP;
+
+// setting back user SP
+SP = 4096;
+
+ireturn;
+

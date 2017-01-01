@@ -10,7 +10,6 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 //Backup of user registers
 backup;
 
-
 alias new_page R0;
 alias ip R1;
 alias user_sp R2;
@@ -31,14 +30,25 @@ inline "PUSH R2";
 inline "PUSH R3";
 
 //Calling module to get free memory page
+R1 = 1;
 call MOD_2;
+new_page = R0;
 
 inline "POP R3";
 inline "POP R2";
 inline "POP R1";
 
-//Loadig page from disk
-loadi(new_page, [PTBR + (ip/512)*2]);
+//HACK - use inline push (not necc as R0 not used)
+
+	backup;
+	
+	R1 = 2;
+	R2 = new_page;
+	R3 = [PTBR + (ip/512)*2];
+	
+	call MOD_4;
+
+	restore;
 
 //Setting PT entries for the new page
 [PTBR + (ip/512)*2] = new_page;
