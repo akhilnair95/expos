@@ -1,0 +1,176 @@
+alias userSP R0;
+userSP = SP;
+
+alias physicalSP R1;
+
+physicalSP = [PTBR +  ( userSP / 512 ) * 2] * 512 + (userSP % 512);
+
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias syscall_no R3;
+syscall_no = [physicalSP - 5];
+
+//----------------------------------------------------------------------------------------------------------------------------------
+//Create system call
+
+if(syscall_no == 1) then
+
+	alias fname R3;
+	
+	//Get Filename from physicalSP -4
+	fname = [physicalSP - 4];
+
+	alias counter R4;
+
+	counter = 0;
+
+//----------------------------------------------------------------------------------------------------------------------------------	
+	//Check if file is already present
+	while(counter < 60) do
+		if([INODE_TABLE + counter*16 + 1] == fname) then
+			// setting back user SP
+			SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+			[physicalSP - 1] = 0;
+			ireturn;
+		endif;
+		counter = counter + 1;
+	endwhile;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+	counter = 0;
+	 
+	//Check for free entry in inode table 
+	while(counter < 60) do
+		if([INODE_TABLE + counter*16 + 1] == -1) then
+			break;
+		endif;
+		counter = counter + 1;
+	endwhile;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+	//Exit if no free inode table entry present
+	if(counter == 60) then
+		// setting back user SP
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = 0;
+		ireturn;
+	endif;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+	//set inode table entry
+	[INODE_TABLE + counter*16 + 1] = fname;
+	[INODE_TABLE + counter*16 + 0] = 2;
+	[INODE_TABLE + counter*16 + 2] = 0;
+	[INODE_TABLE + counter*16 + 8] = -1;
+	[INODE_TABLE + counter*16 + 9] = -1;
+	[INODE_TABLE + counter*16 + 10] = -1;
+	[INODE_TABLE + counter*16 + 11] = -1;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+	//Set root file entry
+	[ROOT_FILE + counter*8 + 0] = fname;
+	[ROOT_FILE + counter*8 + 1] = 0;
+	[ROOT_FILE + counter*8 + 2] = 2;
+
+	// Initialise Open file count in File status table
+	[FILE_STATUS_TABLE + counter*4 + 2] = 0;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+else
+	//Delete system call
+	
+	if(syscall_no == 4) then
+		alias fname R3;
+	
+		//Get Filename from physicalSP -4
+		fname = [physicalSP - 4];
+
+		alias counter R4;
+//----------------------------------------------------------------------------------------------------------------------------------
+		counter = 0;
+		
+		//Find the inode table entry corresponding to the given filename
+		while(counter < 60) do
+			if([INODE_TABLE + counter*16 + 1] == fname) then
+				break;
+			endif;
+			counter = counter + 1;
+		endwhile;
+	
+//----------------------------------------------------------------------------------------------------------------------------------	
+		//Exit if inode entry not found
+		if(counter == 60) then
+			// setting back user SP
+			SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+			[physicalSP - 1] = -1;
+			ireturn;
+		endif;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+		//Exit if file is not a DATA file
+		if([INODE_TABLE + counter*16 + 0] != 2) then
+			// setting back user SP
+			print "NOT D";
+			SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+			[physicalSP - 1] = -1;
+			ireturn;
+		endif;
+	
+//----------------------------------------------------------------------------------------------------------------------------------		
+		//Exit if file is already open
+		if([FILE_STATUS_TABLE + counter*4 + 2] > 0) then
+			// setting back user SP
+			SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+			[physicalSP - 1] = -2;
+			ireturn;
+		endif;
+
+//----------------------------------------------------------------------------------------------------------------------------------	
+		alias temp R5;
+		temp = 0;
+		
+		//Deallocate the disk blocks
+		while(temp < 4) do
+			if([INODE_TABLE + counter*16 + 8 + temp] != -1) then
+				[DISK_FREE_LIST + [INODE_TABLE + counter*16 + 8 + temp]] = -1;
+				[INODE_TABLE + counter*16 + 8 + temp] = -1;
+			endif;
+			temp = temp + 1;
+		endwhile;
+
+//----------------------------------------------------------------------------------------------------------------------------------	
+		//Set inode table entry to null
+		[INODE_TABLE + counter*16 + 1] = -1;
+		
+		//Set root file entry to null
+		[ROOT_FILE + counter*8 + 0] = -1;
+			
+	endif;
+endif;
+
+//----------------------------------------------------------------------------------------------------------------------------------	
+// Making Commitments -> Will be shited to Shutdown syscall later
+
+//load inodetable and UserTable
+store(59,3);
+store(60,4);
+
+//Commit Root file
+store(62,5);
+
+//Commit Dfl
+store(61,2);
+
+//----------------------------------------------------------------------------------------------------------------------------------	
+
+[physicalSP - 1] = 0;
+
+// setting back user SP
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
+ireturn;
+

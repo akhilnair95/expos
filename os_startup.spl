@@ -100,6 +100,12 @@ loadi(51,64);
 loadi(59,3);
 loadi(60,4);
 
+//load Root file
+loadi(62,5);
+
+//load disk free list
+loadi(61,2);
+
 //---------------------------------------------------------------------
 // Initialising PCBs
 

@@ -20,12 +20,13 @@ else
 		
 		[MEMORY_FREE_LIST + kernel_stack] = [MEMORY_FREE_LIST + kernel_stack] - 1;
 		
+	
 	else
 		if(argument == 3) then
 			//exit process
-			
+        
 			//Free pcb entry
-
+          
 			inline "PUSH R1";
 			inline "PUSH R2";
 			
@@ -52,7 +53,7 @@ else
 			[PROCESS_TABLE + pid*16 + 4] = TERMINATED;
 			
 		else
-		
+			
 			//Free page table entries
 			//Other than library
 			
@@ -92,6 +93,5 @@ else
 		endif;
 	endif;	
 endif;				
-
 
 return;

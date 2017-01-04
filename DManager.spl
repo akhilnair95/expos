@@ -16,8 +16,7 @@ if(fnNumber == 2) then
 	
 	// load
 	load(R2,R3);
-	
-	print "Disk slp";	
+		
 	breakpoint;
 	
 	[PROCESS_TABLE + pid * 16 + 4] = WAIT_DISK;
