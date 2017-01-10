@@ -63,7 +63,7 @@ if(syscall_no == 1) then
 //----------------------------------------------------------------------------------------------------------------------------------
 	//set inode table entry
 	[INODE_TABLE + counter*16 + 1] = fname;
-	[INODE_TABLE + counter*16 + 0] = 2;
+	[INODE_TABLE + counter*16 + 0] = FILE_DATA;
 	[INODE_TABLE + counter*16 + 2] = 0;
 	[INODE_TABLE + counter*16 + 8] = -1;
 	[INODE_TABLE + counter*16 + 9] = -1;
@@ -112,7 +112,7 @@ else
 
 //----------------------------------------------------------------------------------------------------------------------------------
 		//Exit if file is not a DATA file
-		if([INODE_TABLE + counter*16 + 0] != 2) then
+		if([INODE_TABLE + counter*16 + 0] != FILE_DATA) then
 			// setting back user SP
 			print "NOT D";
 			SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];

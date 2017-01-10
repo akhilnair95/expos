@@ -1,2 +1,78 @@
-print R0;
+//Open & Close System Call
+
+alias userSP R0;
+userSP = SP;
+
+alias physicalSP R1;
+
+physicalSP = [PTBR +  ( userSP / 512 ) * 2] * 512 + (userSP % 512);
+
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+//-------------------------------------------------------------------
+
+alias syscallno R2;
+alias counter R3;
+
+syscallno = [physicalSP - 5];
+
+if(syscallno == 2) then
+	// Open sm call
+	
+	//Get the filename;
+	alias fname R4;
+	
+	fname = [physicalSP - 4];
+	
+	// Get the inodeindex
+	alias inodeIndex R5;
+	
+	counter = 0;
+	
+	while(counter < 60) do
+		if([INODE_TABLE + counter*16 + 1] == fname) then
+			break;
+		endif;
+		counter = counter + 1;
+	endwhile;
+	
+	inodeIndex = counter;
+	
+	//File not found
+	if(inodeIndex == 60) then
+			SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+			[physicalSP - 1] = -1;
+			ireturn;
+	endif;
+	
+	//Check if filetype is exec
+	if([INODE_TABLE + inodeIndex*16 + 0] == FILE_EXEC) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -1;
+		ireturn;
+	endif;
+	
+	alias openFTindex R6;
+	alias RTindex R7;
+	
+	// Check entry in OpenFT
+	counter = 0;
+	 
+	
+else
+	// Close
+
+endif;
+
+//-------------------------------------------------------------------
+
+
+// setting back user SP
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
 ireturn;
+
