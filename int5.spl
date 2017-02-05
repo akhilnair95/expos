@@ -20,6 +20,8 @@ alias counter R3;
 
 syscallno = [physicalSP - 5];
 
+//---------------------------------------------------------------------
+
 if(syscallno == 2) then
 	// Open sm call
 	
@@ -33,6 +35,8 @@ if(syscallno == 2) then
 	
 	counter = 0;
 	
+	//--------------------------------------------------
+	
 	while(counter < 60) do
 		if([INODE_TABLE + counter*16 + 1] == fname) then
 			break;
@@ -41,6 +45,8 @@ if(syscallno == 2) then
 	endwhile;
 	
 	inodeIndex = counter;
+	
+	//--------------------------------------------------
 	
 	//File not found
 	if(inodeIndex == 60) then
@@ -56,16 +62,133 @@ if(syscallno == 2) then
 		ireturn;
 	endif;
 	
+	//--------------------------------------------------
+	
 	alias openFTindex R6;
 	alias RTindex R7;
 	
 	// Check entry in OpenFT
 	counter = 0;
-	 
+	
+	while(counter < 32) do
+		if([FILE_TABLE + counter*4 + 0] == -1) then
+			break;
+		endif;
+		counter = counter + 1;
+	endwhile; 
+	
+	openFTindex = counter;
+	
+	//--------------------------------------------------
+	// No free entry check
+	
+	if(openFTindex == 32) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -3;
+		ireturn;
+	endif;
+
+	//--------------------------------------------------
+	// Check entry in res table
+			
+	counter = 0;
+	
+    alias kernPage R8;
+	
+	kernPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+	
+	while(counter < 8) do
+		if([kernPage*512 + RESOURCE_TABLE_OFFSET + counter*2 + 0 ] == -1) then
+			break;
+		endif;
+		counter = counter + 1;
+	endwhile;
+	
+	RTindex = counter;
+	
+	if(RTindex == 8) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -2;
+		ireturn;
+	endif;
+	
+	//--------------------------------------------------
+	// Set Restable
+	
+	[kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 0 ] = RES_FILE;
+	[kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 1 ] = openFTindex;
+	
+	//--------------------------------------------------
+	// Set open FT
+	
+ 	[FILE_TABLE + openFTindex*4 + 0] = inodeIndex;
+ 	[FILE_TABLE + openFTindex*4 + 1] = 1;
+ 	[FILE_TABLE + openFTindex*4 + 2] = 0;
+ 	
+ 	//--------------------------------------------------
+	// Increm file open count in file status table
+	
+	[FILE_STATUS_TABLE + inodeIndex*4 + 1] =  [FILE_STATUS_TABLE + inodeIndex*4 + 1] + 1;
+ 	
+ 	//Ret val to RT index
+ 	[physicalSP - 1] = RTindex;
+ 	
+//---------------------------------------------------------------------
 	
 else
-	// Close
+	alias RTindex R4;
+	
+	alias kernPage R5;
+	
+	kernPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+	
+	RTindex = [physicalSP - 4];
 
+	print "kar";
+	
+	if(RTindex < 0 || RTindex > 7) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -1;
+		ireturn;
+	endif;	
+	
+	// IF Res not file error
+
+	if([kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 0 ] != RES_FILE) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -1;
+		ireturn;
+	endif;
+
+	alias openFTindex R6;
+	alias inodeIndex R7;
+	
+	// Get OpenFT index
+	
+	openFTindex = [kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 1 ];
+
+	inodeIndex = [FILE_TABLE + openFTindex*4 + 0];
+	
+	// Decrement FileOpen count in File status table
+	[FILE_STATUS_TABLE + inodeIndex*4 + 1] =  [FILE_STATUS_TABLE + inodeIndex*4 + 1] - 1;
+	
+	// Decrement File Open count in Open FT
+	[FILE_TABLE + openFTindex*4 + 1] = [FILE_TABLE + openFTindex*4 + 1] - 1;
+	
+	//If 0 -> Invalidate
+	
+	if([FILE_TABLE + openFTindex*4 + 1] == 0) then
+		[FILE_TABLE + openFTindex*4 + 0] = -1;
+		[FILE_TABLE + openFTindex*4 + 1] = -1;
+		[FILE_TABLE + openFTindex*4 + 2] = -1;
+	endif;
+	
+	//Invalidate Res Table Entry
+	
+	[kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 0 ] = -1;
+	[kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 1 ] = -1;
+	
+	[physicalSP - 1] = 0;
 endif;
 
 //-------------------------------------------------------------------

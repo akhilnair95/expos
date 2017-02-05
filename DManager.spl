@@ -16,11 +16,36 @@ if(fnNumber == 2) then
 	
 	// load
 	load(R2,R3);
-		
-	breakpoint;
 	
 	[PROCESS_TABLE + pid * 16 + 4] = WAIT_DISK;
 	call MOD_5;
 	
 	return;
+	
+else 
+
+if	(fnNumber == 1) then
+	// Acquire Disk
+	
+	alias pid R4;
+	
+	pid = [SYSTEM_STATUS_TABLE + 1];
+	
+	while([DISK_STATUS_TABLE] == 1) do
+		[PROCESS_TABLE + pid * 16 + 4] = WAIT_DISK;
+		call MOD_5; 
+	endwhile;
+	
+	[DISK_STATUS_TABLE] = 1;
+	
+	// store
+	store(R2,R3);
+	
+	[PROCESS_TABLE + pid * 16 + 4] = WAIT_DISK;
+	call MOD_5;
+	
+	return;
+	
+endif;
+
 endif;

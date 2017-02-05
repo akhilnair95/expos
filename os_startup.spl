@@ -221,7 +221,37 @@ SP = 8*512;
 
 [76*512] = [65 * 512 + 1]; 
 
+//---------------------------------------------------------------------
+// Initialising File status Table 
+counter = 0;
 
+while(counter < 60) do
+	[FILE_STATUS_TABLE + counter*4 + 0] = -1;
+	[FILE_STATUS_TABLE + counter*4 + 1] = 0;
+	counter = counter + 1;
+endwhile;
+
+//---------------------------------------------------------------------
+// Initialising Open File Table 
+counter = 0;
+
+while(counter < 32) do
+	[FILE_TABLE + counter*4 + 0] = -1;
+	[FILE_TABLE + counter*4 + 1] = -1;
+	[FILE_TABLE + counter*4 + 2] = -1;
+	counter = counter + 1;
+endwhile;
+
+//---------------------------------------------------------------------
+// Initialising Resource Table for Init
+
+counter = 0;
+
+while(counter < 8) do
+	[78*512 + RESOURCE_TABLE_OFFSET + counter*2 + 0 ] = -1;
+	[78*512 + RESOURCE_TABLE_OFFSET + counter*2 + 1 ] = -1;
+	counter = counter + 1;
+endwhile;
 //---------------------------------------------------------------------
 //Setting up memory free list
 

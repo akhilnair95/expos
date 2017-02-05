@@ -1,0 +1,33 @@
+alias userSP R0;
+userSP = SP;
+
+alias physicalSP R1;
+
+physicalSP = [PTBR +  ( userSP / 512 ) * 2] * 512 + (userSP % 512);
+
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias syscall_no R3;
+syscall_no = [physicalSP - 5];
+
+//--------------------------------------------------------------------------
+// Making Commitments
+
+//load inodetable and UserTable
+store(59,3);	
+store(60,4);
+	
+//Commit Root file
+store(62,5);
+
+//Commit Dfl
+store(61,2);
+
+//--------------------------------------------------------------------------
+//Halt the system
+
+halt;
