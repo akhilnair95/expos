@@ -1,0 +1,125 @@
+alias userSP R0;
+userSP = SP;
+
+alias physicalSP R1;
+
+physicalSP = [PTBR +  ( userSP / 512 ) * 2] * 512 + (userSP % 512);
+
+//Saving value of user SP in PCB
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias syscall_no R2;
+syscall_no = [physicalSP - 5];
+
+//----------------------------------------------------------------------------------------
+//Read system call
+
+//-----------------------------------------------------------------
+//Read args from stack
+
+alias fd R3;
+alias memBuf R4;
+
+fd = [physicalSP - 4];
+memBuf = [physicalSP - 3];
+
+//-----------------------------------------------------------------
+// Check if fd valid
+
+if(fd < 0 || fd > 7) then
+	[physicalSP - 1] = -1;
+	SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	ireturn;
+endif;
+
+alias kernPage R5;
+	
+kernPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+	
+if([kernPage*512 + RESOURCE_TABLE_OFFSET + fd*2 + 0 ] != RES_FILE) then
+	SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[physicalSP - 1] = -1;
+	ireturn;
+endif;
+
+//-----------------------------------------------------------------
+// Get OpenFT index and inodeIndex corresp to fd
+
+alias openFTindex R6;
+alias inodeIndex R7;
+	
+openFTindex = [kernPage*512 + RESOURCE_TABLE_OFFSET + fd*2 + 1 ];
+inodeIndex = [FILE_TABLE + openFTindex*4 + 0];
+
+//-----------------------------------------------------------------
+// Lock inode (file)
+
+backup;
+	R1 = 2;
+	R2 = inodeIndex;
+	call MOD_0;
+restore;	
+
+//-----------------------------------------------------------------
+
+//Get Lseek from OpenFT
+
+alias lseek R8;
+lseek = [FILE_TABLE + openFTindex*4 + 2];
+
+//Check for EOF
+if(lseek == [INODE_TABLE + inodeIndex * 16 + 2]) then
+	SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[physicalSP - 1] = -2;
+	ireturn;
+endif;
+
+alias diskNo R9;
+alias offset R10;
+
+diskNo = [INODE_TABLE + inodeIndex * 16 + 8 + (lseek/512)];
+offset = lseek % 512;
+
+//-----------------------------------------------------------------
+// Addres Translate the adress of mem buff
+// Check more Safely :p
+
+alias phyMemBuf R11;
+phyMemBuf = [PTBR +  ( memBuf / 512 ) * 2] * 512 + (memBuf % 512);
+
+//-----------------------------------------------------------------
+// Read data from Buffer
+backup;
+	R1 = 2;
+	R2 = diskNo;
+	R3 = offset;
+	R4 = phyMemBuf;
+	call MOD_3;
+restore;
+
+//-----------------------------------------------------------------
+// Increment lseek
+
+[FILE_TABLE + openFTindex*4 + 2] = lseek + 1;
+
+//-----------------------------------------------------------------
+//Release Inode
+
+backup;
+	R1 = 4;
+	R2 = inodeIndex;
+	call MOD_0;
+restore;
+
+//----------------------------------------------------------------------------------------
+
+[physicalSP - 1] = 0;
+
+// setting back user SP
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
+ireturn;
+

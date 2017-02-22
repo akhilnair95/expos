@@ -13,7 +13,7 @@ process_table_entry = PROCESS_TABLE + currentPID * 16;
 
 alias newPID R2;
 
-print "to schedule";
+//print "to schedule";
 
 //find out the next ready or created process
 
@@ -21,29 +21,38 @@ newPID = (currentPID + 1) % 16;
 
 alias new_process_table R0;
 
-// -> Change so that Idle(0) is scheduled only if no process is ready
- 
+// Changed so that Idle(0) is scheduled only if no process is ready 
+
 while(newPID != currentPID) do
 	new_process_table = PROCESS_TABLE + newPID * 16;
+	
 	if([new_process_table + 4] == READY || [new_process_table + 4] == CREATED) then
-		break;
+		if(newPID != 0) then
+			break;
+		endif;
 	endif;
+	
 	newPID = (newPID + 1) % 16;
+	 
 endwhile;
 
 new_process_table = PROCESS_TABLE + newPID * 16;
 
-// Idle is atleast scheduled
+// If no process available, Schedule idle
+if([new_process_table + 4] != READY && [new_process_table + 4] != CREATED) then
+	newPID =0;
+	new_process_table = PROCESS_TABLE;
+endif;
+
 
 //Set back Kernel SP, PTBR , PTLR
 SP =  [new_process_table + 11] * 512 + [new_process_table + 12] ;
 PTBR = [new_process_table + 14];
 PTLR = [new_process_table + 15];
 
-print newPID;
+//print newPID;
 
 [SYSTEM_STATUS_TABLE + 1] = newPID;
-
 
 if([new_process_table + 4] == CREATED) then
 	// Overwrite UserSP

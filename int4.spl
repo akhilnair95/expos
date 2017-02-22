@@ -19,6 +19,8 @@ syscall_no = [physicalSP - 5];
 
 if(syscall_no == 1) then
 
+	print "Create";
+	
 	alias fname R3;
 	
 	//Get Filename from physicalSP -4
@@ -33,6 +35,7 @@ if(syscall_no == 1) then
 	while(counter < 60) do
 		if([INODE_TABLE + counter*16 + 1] == fname) then
 			// setting back user SP
+			print "File p";
 			SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 			[physicalSP - 1] = 0;
 			ireturn;

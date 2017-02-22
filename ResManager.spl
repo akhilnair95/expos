@@ -1,0 +1,61 @@
+alias fnNumber R1;
+
+if(fnNumber == 1) then
+	// Acquire Disk
+	
+	alias pid R4;
+	
+	pid = [SYSTEM_STATUS_TABLE + 1];
+	
+	while([DISK_STATUS_TABLE] == 1) do
+		[PROCESS_TABLE + pid * 16 + 4] = WAIT_DISK;
+		backup; call MOD_5; restore;
+	endwhile;
+
+	[DISK_STATUS_TABLE] = 1;
+	
+	return;
+	
+else 
+
+	if	(fnNumber == 2) then
+		alias inodeIndex R2;
+			
+		// Acquire Inode
+		while([FILE_STATUS_TABLE + inodeIndex*4 ] != -1) do
+			[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_FILE;
+			[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 5] = inodeIndex;
+			backup; call MOD_5; restore;
+		endwhile;	
+		
+		[FILE_STATUS_TABLE + inodeIndex*4 ] = [SYSTEM_STATUS_TABLE + 1];
+		
+		return;
+		
+	else
+	
+		if(fnNumber == 3) then
+			// Terminal Acq
+			R0 = R0 + 1;
+		else
+			//Release Inode
+			alias inodeIndex R2;
+			alias counter R3;
+			counter = 0;
+
+			[FILE_STATUS_TABLE + inodeIndex*4 ] = -1;
+			
+			while(counter < 16) do
+				if([PROCESS_TABLE + counter * 16 + 4] == WAIT_FILE && [PROCESS_TABLE + counter * 16 + 5] == inodeIndex) then
+					[PROCESS_TABLE + counter * 16 + 4] = READY;
+				endif;
+				counter = counter + 1;
+			endwhile;
+
+			return;
+			
+		endif;
+		
+	endif;
+
+endif;	

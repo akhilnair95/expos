@@ -65,6 +65,10 @@ endwhile;
 //---------------------------------------------------------------------
 // load all modules
 
+//load module 0
+loadi(40,53);
+loadi(41,54);
+
 //load module 1
 loadi(42,55);
 loadi(43,56);
@@ -241,6 +245,18 @@ while(counter < 32) do
 	[FILE_TABLE + counter*4 + 2] = -1;
 	counter = counter + 1;
 endwhile;
+
+//---------------------------------------------------------------------
+// Initialising Buffer Table 
+counter = 0;
+
+while(counter < 4) do
+	[BUFFER_TABLE + counter*4 + 0] = -1;
+	[BUFFER_TABLE + counter*4 + 1] = 0;
+	[BUFFER_TABLE + counter*4 + 2] = -1;
+	counter = counter + 1;
+endwhile;
+
 
 //---------------------------------------------------------------------
 // Initialising Resource Table for Init
