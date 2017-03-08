@@ -2,17 +2,12 @@ alias fnNumber R1;
 
 if(fnNumber == 1) then
 	//BufWrite
-	R0 = 1;
-else
-	//BufRead
-	
 	alias diskNo R2;
 	alias offset R3;
-	alias mem R4;
+	alias word R4;
 	alias bufNo R5;
 	
 	bufNo = diskNo %4;
-		
 	//Acquire Buffer
 	while([BUFFER_TABLE + bufNo * 4 + 2] != -1) do
 		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_BUFFER;
@@ -21,10 +16,9 @@ else
 	endwhile;
 	
 	[BUFFER_TABLE + bufNo * 4 + 2] = [SYSTEM_STATUS_TABLE + 1];
-	
 	//check if buffer not same as disk block
 		
-	
+	print diskNo;
 	if([BUFFER_TABLE + bufNo * 4 + 0] != diskNo) then
 		//check if the buffer present is dirty
 		if([BUFFER_TABLE + bufNo * 4 + 1] == 1) then
@@ -40,9 +34,11 @@ else
 			call MOD_4;
 			restore;
 			
+			// Mark Buffer as clean
+			[BUFFER_TABLE + bufNo * 4 + 1] = 0;		
 		endif;
-	
-		backup;
+		
+	backup;
 		
 		R1 = 2;
 		R3 = diskNo;
@@ -52,8 +48,87 @@ else
 		
 		restore;
 					
+		// Set disk block number
+		[BUFFER_TABLE + bufNo * 4 + 0] = diskNo;
+					
 	endif;
 	
+	[(BUFFER_BASE + bufNo) * 512 + offset] = word;
+	// Mark Buffer as Dirty
+	[BUFFER_TABLE + bufNo * 4 + 1] = 1;
+	
+	//Release buffer Wake up processes
+	[BUFFER_TABLE + bufNo * 4 + 2] = -1;
+	
+	alias counter R6;
+	counter = 0;
+
+	while(counter < 16) do
+		if([PROCESS_TABLE + counter * 16 + 4] == WAIT_BUFFER && [PROCESS_TABLE + counter * 16 + 5] == bufNo) then
+			[PROCESS_TABLE + counter * 16 + 4] = READY;
+		endif;
+		counter = counter + 1;
+	endwhile;
+
+	return;
+else
+	//BufRead
+	print "Hello1";
+	alias diskNo R2;
+	alias offset R3;
+	alias mem R4;
+	alias bufNo R5;
+	
+	bufNo = diskNo %4;
+		
+	//Acquire Buffer
+	while([BUFFER_TABLE + bufNo * 4 + 2] != -1) do
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_BUFFER;
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 5] = bufNo;
+		backup; call MOD_5; restore; 
+	endwhile;
+	
+	[BUFFER_TABLE + bufNo * 4 + 2] = [SYSTEM_STATUS_TABLE + 1];
+	print "Hello2";
+	//check if buffer not same as disk block
+		
+	
+	if([BUFFER_TABLE + bufNo * 4 + 0] != diskNo) then
+		//check if the buffer present is dirty
+		if([BUFFER_TABLE + bufNo * 4 + 1] == 1) then
+			// write back buffer;
+			
+			print "Dirty";
+			print "Hello3";
+			backup;
+			R1 = 1;
+			R2 = BUFFER_BASE + bufNo;
+			R3 = [BUFFER_TABLE + bufNo * 4 + 0];
+			
+			call MOD_4;
+			restore;
+			
+			// Mark Buffer as clean
+			[BUFFER_TABLE + bufNo * 4 + 1] = 0;	
+			
+		endif;
+		print "Hello4";
+		breakpoint;
+		backup;
+		
+		R1 = 2;
+		R3 = diskNo;
+		R2 = BUFFER_BASE + bufNo;
+				
+		call MOD_4;
+		
+		restore;
+		
+		// Set disk block number
+		[BUFFER_TABLE + bufNo * 4 + 0] = diskNo;
+					
+	endif;
+	print "Hello5";
 	[mem] = [(BUFFER_BASE + bufNo) * 512 + offset]; 
 	
 	//Relese buffer Wake up processes
@@ -62,7 +137,7 @@ else
 	
 	alias counter R6;
 	counter = 0;
-
+	print "Hello5";
 	while(counter < 16) do
 		if([PROCESS_TABLE + counter * 16 + 4] == WAIT_BUFFER && [PROCESS_TABLE + counter * 16 + 5] == bufNo) then
 			[PROCESS_TABLE + counter * 16 + 4] = READY;

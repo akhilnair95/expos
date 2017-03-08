@@ -158,7 +158,87 @@ else
 	endif;
 endif;
 
-//----------------------------------------------------------------------------------------------------------------------------------	
+//----------------------------------------------------------------------------
+//seek system call
+
+
+if(syscall_no == 6) then
+		
+	//-----------------------------------------------------------------
+	//Read args from stack
+	alias fd R3;
+	alias offset R4;
+
+	fd = [physicalSP - 4];
+	offset = [physicalSP - 3];
+
+	//-----------------------------------------------------------------
+	// Check if fd valid
+
+	if(fd < 0 || fd > 7) then
+		[physicalSP - 1] = -1;
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		ireturn;
+	endif;
+	alias kernPage R5;
+		
+	kernPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+		
+	if([kernPage*512 + RESOURCE_TABLE_OFFSET + fd*2 + 0 ] != RES_FILE) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -1;
+		ireturn;
+	endif;
+
+	//-----------------------------------------------------------------
+	// Get OpenFT index and inodeIndex corresp to fd
+
+	alias openFTindex R6;
+	alias inodeIndex R7;
+		
+	openFTindex = [kernPage*512 + RESOURCE_TABLE_OFFSET + fd*2 + 1 ];
+	inodeIndex = [FILE_TABLE + openFTindex*4 + 0];
+	
+	//-----------------------------------------------------------------
+	//Get Lseek from OpenFT
+
+	alias lseek R8;
+	lseek = [FILE_TABLE + openFTindex*4 + 2];
+
+	lseek = lseek + offset;
+	
+	//Check for EOF
+	if(lseek >= [INODE_TABLE + inodeIndex * 16 + 2] || (lseek < 0)) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -2;
+		ireturn;
+	endif;
+
+	//-----------------------------------------------------------------
+	// Lock inode (file)
+	print "hi1";
+	backup;
+		R1 = 2;
+		R2 = inodeIndex;
+		call MOD_0;
+	restore;	
+	print "hi2";
+	
+	[FILE_TABLE + openFTindex*4 + 2] = lseek;
+	
+	//-----------------------------------------------------------------
+	//Release Inode
+	print "hi5";
+	
+	backup;
+		R1 = 4;
+		R2 = inodeIndex;
+		call MOD_0;
+	restore;
+	print "hi6";
+	
+endif;
+
 
 [physicalSP - 1] = 0;
 

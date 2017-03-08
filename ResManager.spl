@@ -16,46 +16,112 @@ if(fnNumber == 1) then
 	
 	return;
 	
-else 
+endif;
 
-	if	(fnNumber == 2) then
-		alias inodeIndex R2;
-			
-		// Acquire Inode
-		while([FILE_STATUS_TABLE + inodeIndex*4 ] != -1) do
-			[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_FILE;
-			[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 5] = inodeIndex;
-			backup; call MOD_5; restore;
-		endwhile;	
+
+if	(fnNumber == 2) then
+	alias inodeIndex R2;
 		
-		[FILE_STATUS_TABLE + inodeIndex*4 ] = [SYSTEM_STATUS_TABLE + 1];
-		
-		return;
-		
-	else
+	// Acquire Inode
+	while([FILE_STATUS_TABLE + inodeIndex*4 ] != -1) do
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_FILE;
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 5] = inodeIndex;
+		backup; call MOD_5; restore;
+	endwhile;	
 	
-		if(fnNumber == 3) then
+	[FILE_STATUS_TABLE + inodeIndex*4 ] = [SYSTEM_STATUS_TABLE + 1];
+	
+	return;
+		
+endif;
+	
+if(fnNumber == 3) then
 			// Terminal Acq
 			R0 = R0 + 1;
-		else
-			//Release Inode
-			alias inodeIndex R2;
-			alias counter R3;
-			counter = 0;
+endif;
 
-			[FILE_STATUS_TABLE + inodeIndex*4 ] = -1;
-			
-			while(counter < 16) do
-				if([PROCESS_TABLE + counter * 16 + 4] == WAIT_FILE && [PROCESS_TABLE + counter * 16 + 5] == inodeIndex) then
-					[PROCESS_TABLE + counter * 16 + 4] = READY;
-				endif;
-				counter = counter + 1;
-			endwhile;
+if(fnNumber == 4) then
 
-			return;
-			
+	//Release Inode
+	alias inodeIndex R2;
+	alias counter R3;
+	counter = 0;
+
+	[FILE_STATUS_TABLE + inodeIndex*4 ] = -1;
+	
+	while(counter < 16) do
+		if([PROCESS_TABLE + counter * 16 + 4] == WAIT_FILE && [PROCESS_TABLE + counter * 16 + 5] == inodeIndex) then
+			[PROCESS_TABLE + counter * 16 + 4] = READY;
 		endif;
-		
-	endif;
+		counter = counter + 1;
+	endwhile;
+
+	return;
+	
 
 endif;	
+
+
+if (fnNumber == 5) then
+	// Release file descr
+
+	alias RTindex R4;
+	
+	alias kernPage R5;
+	
+	kernPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+	
+	RTindex = [physicalSP - 4];
+	
+	if(RTindex < 0 || RTindex > 7) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -1;
+		ireturn;
+	endif;	
+	
+	// IF Res not file error
+
+	if([kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 0 ] != RES_FILE) then
+		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+		[physicalSP - 1] = -1;
+		ireturn;
+	endif;
+
+	alias openFTindex R6;
+	alias inodeIndex R7;
+	
+	// Get OpenFT index
+	
+	openFTindex = [kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 1 ];
+
+	inodeIndex = [FILE_TABLE + openFTindex*4 + 0];
+	
+	// Decrement FileOpen count in File status table
+	[FILE_STATUS_TABLE + inodeIndex*4 + 1] =  [FILE_STATUS_TABLE + inodeIndex*4 + 1] - 1;
+	
+	// Decrement File Open count in Open FT
+	[FILE_TABLE + openFTindex*4 + 1] = [FILE_TABLE + openFTindex*4 + 1] - 1;
+	
+	//If 0 -> Invalidate
+	
+	if([FILE_TABLE + openFTindex*4 + 1] == 0) then
+		[FILE_TABLE + openFTindex*4 + 0] = -1;
+		[FILE_TABLE + openFTindex*4 + 1] = -1;
+		[FILE_TABLE + openFTindex*4 + 2] = -1;
+	endif;
+	
+	//Invalidate Res Table Entry
+	
+	[kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 0 ] = -1;
+	[kernPage*512 + RESOURCE_TABLE_OFFSET + RTindex*2 + 1 ] = -1;
+	
+	[physicalSP - 1] = 0;
+
+endif;
+
+
+if (fnNumber == 6) then
+	// Relase semaphore;
+	R12 = R12;
+	return;
+endif;

@@ -56,7 +56,26 @@ syscall_no = [physicalSP - 5];
 	call MOD_4;
 
 //Commit Buffer if dirty
+alias counter R5;
 
+counter = 0;
+
+print "Shut1";
+
+while(counter < 4) do
+	if([BUFFER_TABLE + counter * 4 + 1] == 1) then
+	
+		//store(BUFFER_BASE + counter, [BUFFER_TABLE + bufNo * 4 + 0]);
+		R1 = 1;
+		R2 = BUFFER_BASE + counter;
+		R3 = [BUFFER_TABLE + counter * 4 + 0];
+		
+		call MOD_4;
+	endif;
+	counter = counter + 1;
+endwhile;
+
+print "Shut2";
 
 //--------------------------------------------------------------------------
 //Halt the system

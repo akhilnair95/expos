@@ -55,15 +55,6 @@ openFTindex = [kernPage*512 + RESOURCE_TABLE_OFFSET + fd*2 + 1 ];
 inodeIndex = [FILE_TABLE + openFTindex*4 + 0];
 
 //-----------------------------------------------------------------
-// Lock inode (file)
-
-backup;
-	R1 = 2;
-	R2 = inodeIndex;
-	call MOD_0;
-restore;	
-
-//-----------------------------------------------------------------
 
 //Get Lseek from OpenFT
 
@@ -76,6 +67,15 @@ if(lseek == [INODE_TABLE + inodeIndex * 16 + 2]) then
 	[physicalSP - 1] = -2;
 	ireturn;
 endif;
+
+//-----------------------------------------------------------------
+// Lock inode (file)
+
+backup;
+	R1 = 2;
+	R2 = inodeIndex;
+	call MOD_0;
+restore;	
 
 alias diskNo R9;
 alias offset R10;
