@@ -15,8 +15,6 @@ curr_pid = [SYSTEM_STATUS_TABLE + 1];
 //exit module
 call MOD_1;
 
-// Set state to terminated
-
 //call scheduler
 call MOD_5;
 
