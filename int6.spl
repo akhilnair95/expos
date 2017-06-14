@@ -26,6 +26,13 @@ alias memBuf R4;
 fd = [physicalSP - 4];
 memBuf = [physicalSP - 3];
 
+
+//*************************
+
+//ADD Terminal Read
+// 			Check fd is -1. -> Call Terminal_Read in MOD_4
+//*************************
+
 //-----------------------------------------------------------------
 // Check if fd valid
 
