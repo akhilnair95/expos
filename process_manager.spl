@@ -49,6 +49,8 @@ else
 			inline "POP R2";
 			inline "POP R1";
 			
+			// BUG - CALL THE CLOSE FILE FUNCTION IN RES MANAGER MODULE
+			
 			//Set state to terminated
 			[PROCESS_TABLE + pid*16 + 4] = TERMINATED;
 			

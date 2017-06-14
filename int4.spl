@@ -138,6 +138,13 @@ else
 		alias temp R5;
 		temp = 0;
 		
+		//*****************************************************
+		//   BUG - Must decrement dfl entries. Not set to -1
+		//   Ideally add a module that allocates and deallocates disk blocks
+	    //         ( Just like in the case of Memory manager)
+		//*****************************************************
+		
+		
 		//Deallocate the disk blocks
 		while(temp < 4) do
 			if([INODE_TABLE + counter*16 + 8 + temp] != -1) then
