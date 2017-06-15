@@ -51,6 +51,10 @@ alias inodeIndex R7;
 openFTindex = [kernPage*512 + RESOURCE_TABLE_OFFSET + fd*2 + 1 ];
 inodeIndex = [FILE_TABLE + openFTindex*4 + 0];
 
+// ************************************************
+// BUG - Lock inode only after Checking for MAX file size
+// ************************************************
+
 //-----------------------------------------------------------------
 // Lock inode (file)
 print "hi1";
@@ -85,8 +89,12 @@ if(lseek == [INODE_TABLE + inodeIndex * 16 + 2]) then
 		endif;
 		counter = counter + 1;
 	endwhile;
-	
-	// No Free disk retuen
+
+	// ************************************************
+	// BUG - Call Release Inode here.
+	// ************************************************	
+
+	// No Free disk return
 	if(counter == 256) then
 		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 		[physicalSP - 1] = -2;

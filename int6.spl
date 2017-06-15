@@ -88,6 +88,13 @@ alias diskNo R9;
 alias offset R10;
 
 diskNo = [INODE_TABLE + inodeIndex * 16 + 8 + (lseek/512)];
+
+//*************************
+
+// If file type is Root ( in node table), disk number is 
+// 			Check fd is -1. -> Call Terminal_Read in MOD_4
+//*************************
+
 offset = lseek % 512;
 
 //-----------------------------------------------------------------
