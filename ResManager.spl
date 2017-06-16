@@ -65,6 +65,15 @@ endif;
 if (fnNumber == 5) then
 	// Release file descr
 
+	//********************************
+	// BUG 
+	//---------
+	//
+	// R2 must be used as RTindex and R3 must be used as PID (not [SYSTEM_STATUS_TABLE + 1] ).
+	// Also return must be used not IRET.
+	// The whole function must be rewritten and the calling functions also. 
+	//*********************************
+	
 	alias RTindex R4;
 	
 	alias kernPage R5;
@@ -73,6 +82,7 @@ if (fnNumber == 5) then
 	
 	RTindex = [physicalSP - 4];
 	
+	// Just a safety check. Validity must be ensured b4 calling. ( Close and Exit_Process module)
 	if(RTindex < 0 || RTindex > 7) then
 		SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 		[physicalSP - 1] = -1;
